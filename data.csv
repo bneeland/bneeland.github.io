@@ -1,0 +1,29 @@
+x,y,name,fill,alt
+1427,-195,Domestic water flow reduction,0.8,235030
+18166,-137,Temperature control optimization,0,273000
+1328,-136,Zone control optimization,-,1027200
+18640,-129,Outdoor air optimization,-,258000
+4992,-126,Air system control optimization,-,132000
+2644,-111,Temperature control optimization,0.2,51090
+99,-98,Vending machine optimization,0.4,79930
+179,-94,Lighting optimization,0.4,112500
+3140,-81,Lighting optimization,1.7,2726540
+2373,-74,Envelope rehabilitation measure,0,932250
+28653,-66,BAS controls feature implementation,1,3699480
+3594,-44,Lighting implementation,3,4096400
+457,-30,Heating control upgrade,1.7,613600
+457,14,Envelope rehabilitation measure,4.3,1425900
+2156,21,BAS controls feature implementation,2,3670400
+591,28,Air system feature implementation,0.1,1563750
+29,36,Domestic water system feature implementation,-,76760
+5361,37,Fan motor conversion,4.2,1925000
+903,58,Aquatic system feature installation,1.4,736560
+678,77,Air system feature implementation,-,2599000
+969,90,Renewable system implementation,0.4,3444350
+1624,174,Envelope rehabilitation measure,-,2070000
+503,190,Pump motor conversion,1.8,1348500
+3285,237,Renewable system implementation,-,20744400
+1267,275,Envelope rehabilitation measure,4.4,14990070
+327,311,Envelope rehabilitation measure,2.2,82620
+12054,322,Air system feature implementation,5.9,23772550
+1595,462,Heating system conversion,2,13355100

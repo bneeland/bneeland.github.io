@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+
+<html lang='en'>
+
+	<head>
+
+		<meta charset='utf-8'>
+
+		<title>Greenhouse Gas Marginal Abatement Cost Curve&mdash;Buildings</title>
+
+		<script src='d3.v3.js'></script>
+
+		<style type='text/css'>
+			.axis path, .axis line {
+				fill:none;
+				stroke:black;
+				shape-rendering:crispEdges;
+			}
+
+			.axis text {
+				font-family:sans-serif;
+				font-size:11px;
+			}
+
+			.tooltip {
+				font-family:sans-serif;
+				font-size:12px;
+				color:black;
+				position:absolute;
+				z-index:10;
+				visibility:hidden;
+				background:white;
+				padding:7px 10px;
+				border:1px solid grey;
+			}
+
+		</style>
+
+	</head>
+
+	<body>
+
+		<script type='text/javascript'>
+
+			// Dimensions
+			var w = (window.innerWidth || document.body.clientWidth) - 25;
+			var h = (window.innerHeight || document.body.clientHeight) - 25;
+			var barPadding = 1;													// line width between bars to tell them apart
+			var chartPadding = 70;												// space all around the chart
+			var header = 50;													// space above the chart for titles, etc.
+
+			// Dataset and graphics
+			d3.csv('data.csv',function(dataset) {
+
+				// Convert any "number" to an actual number
+				dataset.forEach(function(d) {
+					d.y = +d.y;
+					d.x = +d.x;
+					d.fill = +d.fill;
+					d.alt = +d.alt;
+				});
+
+				// Tooltips
+				var tooltip = d3.select('body')
+					.append('div')
+					.attr('class','tooltip');
+
+				// Get min and max values
+				var maxY = d3.max(dataset,function(d) { return d.y; });
+				var minY = Math.min(d3.min(dataset,function(d) { return d.y; }),0);
+
+				// Define scales
+				var xScale = d3.scale.linear()
+					.domain([0,d3.sum(dataset,function(d) { return d.x; })])
+					.range([0,(w - chartPadding * 1.5)]);
+
+				var yScaleLen = d3.scale.linear()
+					.domain([0,maxY])
+					.range([0,(maxY / (maxY - minY) * (h - chartPadding * 2 - header))]);
+
+				var yScalePos = d3.scale.linear()
+					.domain([minY,maxY])
+					.range([(h - chartPadding - header),chartPadding]);
+
+				// Define axes
+				var xAxis = d3.svg.axis()
+					.scale(xScale)
+					.orient('bottom');
+
+				var yAxis = d3.svg.axis()
+					.scale(yScalePos)
+					.orient('left');
+
+				// Add svg element to body
+				var svg = d3.select('body')
+					.append('svg')
+						.attr('width',w)
+						.attr('height',h)
+
+				// Create a container for the chart
+				var chart = svg.append('g')
+						.attr('transform','translate(0,'+ header +')');
+
+				// Datum defines the y-axis height of zero x-axis
+				var datum = yScaleLen(maxY) + chartPadding;
+
+				// Cumulative value of x to position bars
+				var xBars = 0;
+
+				// Gradient
+				var maxFill = d3.max(dataset,function(d) { return d.fill; });								// Highest value of 'fill' in dataset
+				var minFill = d3.min(dataset,function(d) { return d.fill; });								// Lowest value of 'fill' in dataset
+				var midFill; if(maxFill<0.95) { midFill = (minFill + maxFill) / 2; } else { midFill = 1; }	// Define the mid-point value of 'fill' in dataset
+				var gradientHigh = {R: 235, G: 250, B: 175};												// The colour of the highest value of 'fill'
+				var gradientMid = {R: 65, G: 180, B: 195};													// The colour of the middle value of 'fill'
+				var gradientLow = {R: 35, G: 50, B: 150};													// The colour of the lowest value of 'fill'
+				var gradientNull = {R: 160, G: 160, B: 160};												// The colour of any invalid value of 'fill'
+				var fillValue;																				// Initializing 'fillValue' for later
+				var fillText;																				// Initializing 'fillText' for later
+
+				// Draw bars
+				chart.selectAll('rect')
+					.data(dataset)
+					.enter()
+					.append('rect')
+					.attr('x',function(d) {
+						xBars += xScale(d.x);
+						return (xBars - xScale(d.x) + chartPadding + barPadding);
+					})
+					.attr('y',function(d) {			// if y value is negative, start bar at datum
+						if(d.y < 0) {
+							return datum;
+						}
+						else {
+							return yScalePos(d.y);
+						}
+					})
+					.attr('width',function(d) {
+						return xScale(d.x) - barPadding;
+					})
+					.attr('height',function(d) {
+						return Math.abs(yScaleLen(d.y));
+					})
+					.attr('fill', function(d) {
+						if(isNaN(d.fill)) {
+							fillValue = gradientNull;
+						}
+						else if(d.fill<1 && maxFill>0.95) {
+							fillValue = {
+								R: Math.round(gradientLow.R + (d.fill - minFill) * ((gradientMid.R - gradientLow.R)/(midFill - minFill))),
+								G: Math.round(gradientLow.G + (d.fill - minFill) * ((gradientMid.G - gradientLow.G)/(midFill - minFill))),
+								B: Math.round(gradientLow.B + (d.fill - minFill) * ((gradientMid.B - gradientLow.B)/(midFill - minFill)))
+							};
+						}
+						else {
+							fillValue = {
+								R: Math.round(gradientMid.R + (d.fill - midFill) * ((gradientHigh.R - gradientMid.R)/(maxFill - midFill))),
+								G: Math.round(gradientMid.G + (d.fill - midFill) * ((gradientHigh.G - gradientMid.G)/(maxFill - midFill))),
+								B: Math.round(gradientMid.B + (d.fill - midFill) * ((gradientHigh.B - gradientMid.B)/(maxFill - midFill)))
+							};
+						}
+						return 'rgb('+ fillValue.R + ',' + fillValue.G +','+ fillValue.B + ')';
+					})
+					.on('mouseover',function(d) {
+						if(d.y > 0) {var verticalArrow = '↑';} else {var verticalArrow = '↓';}
+						if(isNaN(d.fill)) {fillText = 'n/a';} else {fillText = d.fill*100+'%';}
+						var tooltipText = '<b>'+d.name+'</b><br/>'+verticalArrow+d.y.toLocaleString()+' &nbsp; → '+d.x.toLocaleString()+'  &nbsp;  σ '+fillText+'<br/>Total capital cost: $'+d.alt.toLocaleString();
+						return tooltip
+							.style('visibility','visible')
+							.html(function(d) {
+								return tooltipText;
+							});
+						})
+					.on('mousemove',function() {
+						return tooltip
+							.style('top',(event.pageY+13)+'px')
+							.style('left',(event.pageX+10)+'px');
+					})
+					.on('mouseout',function() {
+						return tooltip
+							.style('visibility','hidden');
+					});
+
+				// x-axis
+				chart.append('g')
+					.attr('class','axis')
+					.attr('transform','translate('+ chartPadding +','+ datum +')')
+					.call(xAxis);
+
+				// x-axis title
+				chart.append('text')
+					.attr('transform','translate('+ w / 2 +','+ (h - header - 5) +')')
+					.style('text-anchor','middle')
+					.text('t CO2_e / y')
+					.attr('font-family','serif')
+					.attr('font-size','14px');
+
+				// y-axis
+				chart.append('g')
+					.attr('class','axis')
+					.attr('transform','translate('+ chartPadding +',0)')
+					.call(yAxis);
+
+				// y-axis label
+				chart.append('text')
+					.attr('transform','rotate(-90)')
+					.attr('y',0)
+					.attr('x',0 - (h / 2))
+					.attr('dy','1em')
+					.style('text-anchor','middle')
+					.text('$ / t CO2_e')
+					.attr('font-family','serif')
+					.attr('font-size','14px');
+
+				// Title
+				svg.append('text')
+					.attr('transform','translate(5,20)')
+					.style('text-anchor','start')
+					.html('Greenhouse Gas Marginal Abatement Cost Curve&mdash;Buildings&mdash;Anonymized data')
+					.attr('font-family','serif')
+					.attr('font-size','21px');
+
+				// Sub-title
+				svg.append('text')
+					.attr('transform','translate(5,40)')
+					.style('text-anchor','start')
+					.text('Height of bar, (y): Average cost of abatement | Width of bar, (x): Total cumulative annual abatement possible')
+					.attr('font-family','serif')
+					.attr('font-size','15px');
+
+				//Gradient legend
+				var legend = d3.select('svg')
+					.append('g')
+					.attr('transform','translate(5,50)');
+
+				var gradient = legend.append('linearGradient')
+					.attr('id','gradient');
+
+					gradient.append('stop')
+						.attr('offset','0%')
+						.attr('style','stop-color:rgb(35,50,150)');
+
+					gradient.append('stop')
+						.attr('offset','50%')
+						.attr('style','stop-color:rgb(65,180,195)');
+
+					gradient.append('stop')
+						.attr('offset','100%')
+						.attr('style','stop-color:rgb(235,250,175)');
+
+				var gradientWidth = 150;
+				var gradientHeight = 15;
+
+				legend.append('rect')
+					.attr('width',''+ gradientWidth +'')
+					.attr('height',''+ gradientHeight +'')
+					.attr('fill','url(#gradient)');
+
+				legend.append('text')
+					.attr('transform','translate(0,'+ (gradientHeight + 12) +')')
+					.style('text-anchor','start')
+					.text(''+ minFill * 100 +'%')
+					.attr('font-family','sans-serif')
+					.attr('font-size','11px');
+
+				legend.append('text')
+					.attr('transform','translate('+ (gradientWidth / 2) +','+ (gradientHeight + 12) +')')
+					.style('text-anchor','middle')
+					.text(''+ midFill * 100 +'%')
+					.attr('font-family','sans-serif')
+					.attr('font-size','11px');
+
+				legend.append('text')
+					.attr('transform','translate('+ (gradientWidth) +','+ (gradientHeight + 12) +')')
+					.style('text-anchor','end')
+					.text(''+ maxFill * 100 +'%')
+					.attr('font-family','sans-serif')
+					.attr('font-size','11px');
+
+			}); // Close Dataset and graphics
+
+		</script>
+
+	</body>
+
+</html>
